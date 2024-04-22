@@ -15,8 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('tasks/', include('tasks.urls')),
+    path('quality_control/', include('quality_control.urls')),
+    path('', include('quality_control.urls'))
 ]
+#http://127.0.0.1:8000/quality_control/bugs/1448/
