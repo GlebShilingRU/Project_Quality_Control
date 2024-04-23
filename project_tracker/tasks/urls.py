@@ -5,7 +5,9 @@ from quality_control import views as quality_control_views
 app_name = 'tasks'
 
 urlpatterns = [
-    path('', tasks_views.index),
-    path('another/', tasks_views.another_page, name='another_page'),
+    path('', quality_control_views.IndexView.as_view(), name='index'),
     path('quality_control/', quality_control_views.index, name='quality_control'),
+    path('projects/', tasks_views.ProjectListView.as_view(), name='projects_list'),
+    path('projects/<int:project_id>/', tasks_views.ProjectDetailView.as_view(), name='project_detail'),
+    path('projects/<int:project_id>/tasks/<int:task_id>/', tasks_views.TaskDetailView.as_view(), name='task_detail'),
 ]
