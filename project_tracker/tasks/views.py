@@ -1,13 +1,12 @@
 from django.http import HttpResponse
-from django.urls import reverse
 from .models import Task, Project
 from django.shortcuts import get_object_or_404
 from django.views import View
-from django.views.generic import ListView, DetailView
-from django.shortcuts import render
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.shortcuts import render, redirect
 from django.core.mail import send_mail
 from .forms import ProjectForm, TaskForm, FeedbackForm
+from django.urls import reverse, reverse_lazy
 
 
 def index(request):
@@ -81,6 +80,13 @@ def create_project(request):
     return render(request, 'tasks/project_create.html', {'form': form})
 
 
+class ProjectCreateView(CreateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'tasks/project_create.html'
+    success_url = reverse_lazy('tasks:projects_list')
+
+
 def add_task_to_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     if request.method == 'POST':
@@ -93,3 +99,85 @@ def add_task_to_project(request, project_id):
     else:
         form = TaskForm()
     return render(request, 'tasks/add_task.html', {'form': form, 'project': project})
+
+
+class TaskCreateView(CreateView):
+    model = Task
+    form_class = TaskForm
+    template_name = 'tasks/add_task.html'
+
+    def form_valid(self, form):
+        form.instance.project = get_object_or_404(Project, pk=self.kwargs['project_id'])
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('tasks:project_detail', kwargs={'project_id': self.kwargs['project_id']})
+
+
+def update_project(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    if request.method == 'POST':
+        form = ProjectForm(request.POST, instance=project)
+        if form.is_valid():
+            form.save()
+            return redirect('tasks:project_detail', project_id=project.id)
+    else:
+        form = ProjectForm(instance=project)
+    return render(request, 'tasks/project_update.html', {'form': form, 'project': project})
+
+
+class ProjectUpdateView(UpdateView):
+    model = Project
+    form_class = ProjectForm
+    template_name = 'tasks/project_update.html'
+    pk_url_kwarg = 'project_id'
+    success_url = reverse_lazy('tasks:projects_list')
+
+
+def update_task(request, project_id, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    if request.method == 'POST':
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            form.save()
+            return redirect('tasks:task_detail', project_id=project_id, task_id=task.id)
+    else:
+        form = TaskForm(instance=task)
+    return render(request, 'tasks/task_update.html', {'form': form, 'task': task})
+
+
+class TaskUpdateView(UpdateView):
+    model = Task
+    form_class = TaskForm
+    template_name = 'tasks/task_update.html'
+    pk_url_kwarg = 'task_id'
+
+    def get_success_url(self):
+        return reverse_lazy('tasks:task_detail', kwargs={'project_id': self.object.project.id, 'task_id': self.object.id})
+
+
+def delete_project(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    project.delete()
+    return redirect('tasks:projects_list')
+
+
+class ProjectDeleteView(DeleteView):
+    model = Project
+    pk_url_kwarg = 'project_id'
+    success_url = reverse_lazy('tasks:projects_list')
+    template_name = 'tasks/project_confirm_delete.html'
+
+
+def delete_task(request, project_id, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    task.delete()
+    return redirect('tasks:project_detail', project_id=project_id)
+
+
+class TaskDeleteView(DeleteView):
+    model = Task
+    pk_url_kwarg = 'task_id'
+
+    def get_success_url(self):
+        return reverse_lazy('tasks:project_detail', kwargs={'project_id': self.object.project.id})
